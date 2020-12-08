@@ -180,10 +180,10 @@ func getValueByInfix(key []byte, value []byte) (realValue string, err error) {
 }
 
 func handleSCCKV(key []byte, value []byte) (kvSet KVSet, err error) {
-	_, _, pvtPrefix := getDataNSKey(bytes.SplitN(key, []byte{0x00}, 2)[1])
+	_, realKey, pvtPrefix := getDataNSKey(bytes.SplitN(key, []byte{0x00}, 2)[1])
 	switch pvtPrefix {
 	case byte('p'): // privateData
-		subNameSpace := strings.Split(string(key), "/")[0]
+		subNameSpace := strings.Split(realKey, "/")[0]
 		var desc string
 		switch subNameSpace {
 		case "namespaces":
