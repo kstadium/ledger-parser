@@ -187,18 +187,18 @@ func handleSCCKV(key []byte, value []byte) (kvSet KVSet, err error) {
 		var desc string
 		switch subNameSpace {
 		case "namespaces":
-			desc = "namespace"
+			desc = "System Chaincode privateData - namespace"
 		case "chaincode-sources":
-			desc = "chaincode sources"
+			desc = "System Chaincode privateData - chaincode sources"
 		default:
 			err = fmt.Errorf("unknown subnamespace")
 			return
 		}
-		kvSet = &SystemPrivateKV{key, value, fmt.Sprintf("[%s]system chaincode privateData", desc)}
+		kvSet = &SystemPrivateKV{key, value, desc}
 	case byte('h'): // privateDataHash
-		kvSet = &SystemPrivateKV{key, value, "system chaincode privateData Hash"}
+		kvSet = &SystemPrivateKV{key, value, "System Chaincode privateDataHash"}
 	default: // publicData
-		kvSet = &SystemPublicKV{key, value, "system chaincode publicData"}
+		kvSet = &SystemPublicKV{key, value, "System Chaincode publicData"}
 	}
 	return
 }
@@ -208,11 +208,11 @@ func handleUCCKV(key []byte, value []byte) (kvSet KVSet) {
 
 	switch pvtPrefix {
 	case byte('p'): // privateData
-		kvSet = &UserPrivateKV{key, value, "privateData"}
+		kvSet = &UserPrivateKV{key, value, "User Chaincode privateData"}
 	case byte('h'): // privateDataHash
-		kvSet = &UserPrivateKV{key, value, "privateDataHash"}
+		kvSet = &UserPrivateKV{key, value, "User Chaincode privateDataHash"}
 	default: // publicData
-		kvSet = &UserPublicKV{key, value, "publicData"}
+		kvSet = &UserPublicKV{key, value, "User Chaincode publicData"}
 	}
 	return
 }
@@ -230,12 +230,10 @@ func ParseKV(key []byte, value []byte) (kvSet KVSet, err error) {
 				return
 			}
 		} else if realKey == "CHANNEL_CONFIG_ENV_BYTES" {
-			// realValue = "omitted"
-			// realValue = string(versionedValue.Value)
 			kvSet = &ChannelConfigKV{key, value, "channel config data"}
 		} else { // user chaincode
 			if strings.Contains(realKey, "\x00"+string(utf8.MaxRune)+"initialized") {
-				kvSet = &UserPublicKV{key, value, "initialized"}
+				kvSet = &UserPublicKV{key, value, "User Chaincode initialized"}
 			} else {
 				kvSet = handleUCCKV(key, value)
 			}
