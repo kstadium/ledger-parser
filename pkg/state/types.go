@@ -86,7 +86,7 @@ func (kv ChannelConfigKV) Value() string {
 		return err.Error()
 	}
 
-	return fmt.Sprintf("%s", b)
+	return string(b)
 }
 
 type SystemPublicKV struct {
@@ -161,14 +161,14 @@ func (kv SystemPrivateKV) Key() string {
 		case "chaincode-sources":
 			// do nothing
 		default:
-			return fmt.Sprintf("unknown subnamespace")
+			return "unknown subnamespace"
 		}
 
 	case byte('h'): // privateDataHash
 		realKey = hex.EncodeToString([]byte(realKey))
 
 	default: // publicData
-		return fmt.Sprintf("unknown pvtPrefix")
+		return "unknown pvtPrefix"
 	}
 
 	return realKey
@@ -208,7 +208,7 @@ func (kv SystemPrivateKV) Print() {
 
 	fmt.Printf("<%s>\n", kv.describe)
 	fmt.Printf("RealKey: %s\n", realKey)
-	fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv SystemPrivateKV) Type() int {
@@ -230,7 +230,7 @@ func (kv SystemPrivateKV) Value() string {
 		case "chaincode-sources":
 			// do nothing
 		default:
-			return fmt.Sprintf("unknown subnamespace")
+			return "unknown subnamespace"
 		}
 		realValue, err = getValueByInfix([]byte(realKey), versionedValue.Value)
 		if err != nil {
@@ -239,7 +239,7 @@ func (kv SystemPrivateKV) Value() string {
 	case byte('h'): // privateDataHash
 		realValue = hex.EncodeToString(versionedValue.Value)
 	default: // publicData
-		return fmt.Sprintf("unknown pvtPrefix")
+		return "unknown pvtPrefix"
 	}
 
 	return realValue
@@ -257,7 +257,7 @@ func (kv UserPublicKV) Describe() string {
 
 func (kv UserPublicKV) Key() string {
 	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return realKey
 }
 
 func (kv UserPublicKV) Print() {
@@ -275,7 +275,7 @@ func (kv UserPublicKV) Type() int {
 
 func (kv UserPublicKV) Value() string {
 	var versionedValue, _ = utils.DecodeValue(kv.value)
-	return fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", versionedValue.Value, versionedValue.Version.String(), versionedValue.Metadata)
+	return string(versionedValue.Value)
 }
 
 type UserPrivateKV struct {
@@ -413,6 +413,5 @@ func (kv SavePointKV) Type() int {
 
 func (kv SavePointKV) Value() string {
 	h, _, _ := utils.NewHeightFromBytes(kv.value)
-	realValue := fmt.Sprintf("BlockNum : %d\n\tTxNum : %d", h.BlockNum, h.TxNum)
-	return realValue
+	return fmt.Sprintf("BlockNum : %d\n\tTxNum : %d", h.BlockNum, h.TxNum)
 }
