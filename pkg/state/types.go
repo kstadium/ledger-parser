@@ -41,12 +41,31 @@ func (kv ChannelConfigKV) Describe() string {
 }
 
 func (kv ChannelConfigKV) Key() string {
-	realKey := "CHANNEL_CONFIG_ENV_BYTES"
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return "CHANNEL_CONFIG_ENV_BYTES"
+
 }
 
 func (kv ChannelConfigKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	realKey := "CHANNEL_CONFIG_ENV_BYTES"
+
+	var versionedValue, _ = utils.DecodeValue(kv.value)
+
+	ccenv := &common.ConfigEnvelope{}
+	err := proto.Unmarshal(versionedValue.Value, ccenv)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// realValue := ccenv.String()
+	b, err := json.MarshalIndent(ccenv, "\t\t", "  ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\tvalue:\n\t\t%s\n\tversion: %s\n\tmetadata:%s\n", b, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv ChannelConfigKV) Type() int {
@@ -62,13 +81,12 @@ func (kv ChannelConfigKV) Value() string {
 		return err.Error()
 	}
 
-	// realValue := ccenv.String()
 	b, err := json.MarshalIndent(ccenv, "\t\t", "  ")
 	if err != nil {
 		return err.Error()
 	}
-	// return fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
-	return fmt.Sprintf("Value\n\tvalue:\n\t\t%s\n\tversion: %s\n\tmetadata:%s\n", b, versionedValue.Version.String(), versionedValue.Metadata)
+
+	return fmt.Sprintf("%s", b)
 }
 
 type SystemPublicKV struct {
@@ -83,12 +101,25 @@ func (kv SystemPublicKV) Describe() string {
 
 func (kv SystemPublicKV) Key() string {
 	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return realKey
 
 }
 
 func (kv SystemPublicKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	var realValue string
+	var err error
+	var versionedValue, _ = utils.DecodeValue(kv.value)
+	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
+
+	realValue, err = getValueByInfix([]byte(realKey), versionedValue.Value)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv SystemPublicKV) Type() int {
@@ -105,7 +136,7 @@ func (kv SystemPublicKV) Value() string {
 	if err != nil {
 		return err.Error()
 	}
-	return fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
+	return realValue
 }
 
 type SystemPrivateKV struct {
@@ -140,12 +171,44 @@ func (kv SystemPrivateKV) Key() string {
 		return fmt.Sprintf("unknown pvtPrefix")
 	}
 
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return realKey
 
 }
 
 func (kv SystemPrivateKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	var realValue string
+	var err error
+	var versionedValue, _ = utils.DecodeValue(kv.value)
+	_, realKey, pvtPrefix := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
+
+	subNameSpace := strings.Split(realKey, "/")[0]
+	switch pvtPrefix {
+	case byte('p'): // privateData
+		switch subNameSpace {
+		case "namespaces":
+			// do nothing
+		case "chaincode-sources":
+			// do nothing
+		default:
+			fmt.Printf("unknown subnamespace")
+			return
+		}
+		realValue, err = getValueByInfix([]byte(realKey), versionedValue.Value)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	case byte('h'): // privateDataHash
+		realKey = hex.EncodeToString([]byte(realKey))
+		realValue = hex.EncodeToString(versionedValue.Value)
+	default: // publicData
+		fmt.Printf("unknown pvtPrefix")
+		return
+	}
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv SystemPrivateKV) Type() int {
@@ -174,13 +237,12 @@ func (kv SystemPrivateKV) Value() string {
 			return err.Error()
 		}
 	case byte('h'): // privateDataHash
-		realKey = hex.EncodeToString([]byte(realKey))
 		realValue = hex.EncodeToString(versionedValue.Value)
 	default: // publicData
 		return fmt.Sprintf("unknown pvtPrefix")
 	}
 
-	return fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
+	return realValue
 }
 
 type UserPublicKV struct {
@@ -199,7 +261,12 @@ func (kv UserPublicKV) Key() string {
 }
 
 func (kv UserPublicKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
+	var versionedValue, _ = utils.DecodeValue(kv.value)
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", versionedValue.Value, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv UserPublicKV) Type() int {
@@ -231,11 +298,31 @@ func (kv UserPrivateKV) Key() string {
 	default: // publicData?
 		return "unknown pvtPrefix"
 	}
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return realKey
 }
 
 func (kv UserPrivateKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	var realValue string = ""
+	_, realKey, pvtPrefix := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
+	var versionedValue, err = utils.DecodeValue(kv.value)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	switch pvtPrefix {
+	case byte('p'): // privateData
+		realValue = string(versionedValue.Value)
+	case byte('h'): // privateDataHash
+		realKey = hex.EncodeToString([]byte(realKey))
+		realValue = hex.EncodeToString(versionedValue.Value)
+	default: // publicData?
+		fmt.Println("unknown pvtPrefix")
+		return
+	}
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
 
 func (kv UserPrivateKV) Type() int {
@@ -251,9 +338,9 @@ func (kv UserPrivateKV) Value() string {
 	}
 	switch pvtPrefix {
 	case byte('p'): // privateData
-		realValue = fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", versionedValue.Value, versionedValue.Version.String(), versionedValue.Metadata)
+		realValue = string(versionedValue.Value)
 	case byte('h'): // privateDataHash
-		realValue = fmt.Sprintf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", hex.EncodeToString(versionedValue.Value), versionedValue.Version.String(), versionedValue.Metadata)
+		realValue = hex.EncodeToString(versionedValue.Value)
 	default: // publicData?
 		return "unknown pvtPrefix"
 	}
@@ -274,11 +361,16 @@ func (kv FormatVersionKV) Describe() string {
 
 func (kv FormatVersionKV) Key() string {
 	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return string(realKey)
 }
 
 func (kv FormatVersionKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\tvalue: %s\n", string(kv.value))
+
 }
 
 func (kv FormatVersionKV) Type() int {
@@ -286,7 +378,7 @@ func (kv FormatVersionKV) Type() int {
 }
 
 func (kv FormatVersionKV) Value() string {
-	return fmt.Sprintf("Value\n\tvalue: %s\n", string(kv.value))
+	return string(kv.value)
 
 }
 
@@ -302,11 +394,17 @@ func (kv SavePointKV) Describe() string {
 
 func (kv SavePointKV) Key() string {
 	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	return fmt.Sprintf("RealKey: %s\n", realKey)
+	return string(realKey)
 }
 
 func (kv SavePointKV) Print() {
-	fmt.Printf("key: %s\nvalue: %s\n\n", kv.key, kv.value)
+	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
+	h, _, _ := utils.NewHeightFromBytes(kv.value)
+	realValue := fmt.Sprintf("BlockNum : %d\n\tTxNum : %d", h.BlockNum, h.TxNum)
+
+	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("RealKey: %s\n", realKey)
+	fmt.Printf("Value\n\t%s\n", realValue)
 }
 
 func (kv SavePointKV) Type() int {
@@ -316,5 +414,5 @@ func (kv SavePointKV) Type() int {
 func (kv SavePointKV) Value() string {
 	h, _, _ := utils.NewHeightFromBytes(kv.value)
 	realValue := fmt.Sprintf("BlockNum : %d\n\tTxNum : %d", h.BlockNum, h.TxNum)
-	return fmt.Sprintf("Value\n\t%s\n", realValue)
+	return realValue
 }
