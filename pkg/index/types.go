@@ -28,18 +28,18 @@ type locPointer struct {
 	BytesLength int
 }
 
-type fileLocPointer struct {
-	fileSuffixNum int
+type FileLocPointer struct {
+	FileSuffixNum int
 	locPointer
 }
 
-func (flp *fileLocPointer) unmarshal(b []byte) error {
+func (flp *FileLocPointer) unmarshal(b []byte) error {
 	buffer := proto.NewBuffer(b)
 	i, e := buffer.DecodeVarint()
 	if e != nil {
 		return e
 	}
-	flp.fileSuffixNum = int(i)
+	flp.FileSuffixNum = int(i)
 
 	i, e = buffer.DecodeVarint()
 	if e != nil {
@@ -79,9 +79,17 @@ func retrieveTxID(encodedTxIDKey []byte) (string, error) {
 
 type IndexValue struct {
 	value   string
-	blkFlp  *fileLocPointer
-	txFlp   *fileLocPointer
+	blkFlp  *FileLocPointer
+	txFlp   *FileLocPointer
 	bfsInfo *BlockfilesInfo
+}
+
+func (iv IndexValue) GetBlockFLP() FileLocPointer {
+	return *iv.blkFlp
+}
+
+func (iv IndexValue) GetTransactionFLP() FileLocPointer {
+	return *iv.txFlp
 }
 
 func (iv IndexValue) String() string {
@@ -90,10 +98,10 @@ func (iv IndexValue) String() string {
 		str += fmt.Sprintf("[value]: %s ", iv.value)
 	}
 	if iv.blkFlp != nil {
-		str += fmt.Sprintf("[block FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.blkFlp.fileSuffixNum, iv.blkFlp.Offset, iv.blkFlp.BytesLength)
+		str += fmt.Sprintf("[block FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.blkFlp.FileSuffixNum, iv.blkFlp.Offset, iv.blkFlp.BytesLength)
 	}
 	if iv.txFlp != nil {
-		str += fmt.Sprintf("[transaction FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.txFlp.fileSuffixNum, iv.txFlp.Offset, iv.txFlp.BytesLength)
+		str += fmt.Sprintf("[transaction FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.txFlp.FileSuffixNum, iv.txFlp.Offset, iv.txFlp.BytesLength)
 	}
 
 	if iv.bfsInfo != nil {
@@ -129,7 +137,7 @@ func (i IdxBlockNum) Key() (string, error) {
 }
 
 func (i IdxBlockNum) Value() (IndexValue, error) {
-	blkFlp := &fileLocPointer{}
+	blkFlp := &FileLocPointer{}
 	err := blkFlp.unmarshal(i.value)
 	if err != nil {
 		return IndexValue{}, err
@@ -173,7 +181,7 @@ func (i IdxBlockHash) Key() (string, error) {
 }
 
 func (i IdxBlockHash) Value() (IndexValue, error) {
-	blkFlp := &fileLocPointer{}
+	blkFlp := &FileLocPointer{}
 	err := blkFlp.unmarshal(i.value)
 	if err != nil {
 		return IndexValue{}, err
@@ -224,8 +232,8 @@ func (i IdxTxID) Key() (string, error) {
 func (i IdxTxID) Value() (IndexValue, error) {
 	txIdxValue := &index.TxIDIndexValue{}
 	gproto.Unmarshal(i.value, txIdxValue)
-	blkFlp := &fileLocPointer{}
-	txFlp := &fileLocPointer{}
+	blkFlp := &FileLocPointer{}
+	txFlp := &FileLocPointer{}
 
 	err := blkFlp.unmarshal(txIdxValue.BlkLocation)
 	if err != nil {
@@ -287,7 +295,7 @@ func (i IdxBlockNumTxNum) Key() (string, error) {
 }
 
 func (i IdxBlockNumTxNum) Value() (IndexValue, error) {
-	txFlp := &fileLocPointer{}
+	txFlp := &FileLocPointer{}
 	err := txFlp.unmarshal(i.value)
 	if err != nil {
 		return IndexValue{}, err
