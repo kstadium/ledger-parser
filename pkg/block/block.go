@@ -255,3 +255,60 @@ func GetBlocksFromBlockFile(fileName string) ([]Block, error) {
 
 	return blocks, err
 }
+
+func ReadBlock(file *os.File, fileOffset int64) ([]byte, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	fileSize := fileInfo.Size()
+
+	// At the end of file
+	if fileOffset > fileSize {
+		return nil, nil
+	}
+
+	remainingBytes := fileSize - fileOffset
+	var peekBytes int64 = 8
+	if remainingBytes < int64(peekBytes) {
+		peekBytes = int64(remainingBytes)
+	}
+	lenBytes := make([]byte, peekBytes)
+
+	file.ReadAt(lenBytes, fileOffset)
+
+	length, n := proto.DecodeVarint(lenBytes)
+	if n == 0 {
+		return nil, fmt.Errorf("Error in decoding varint bytes [%#v]", lenBytes)
+	}
+
+	bytesExpected := int64(n) + int64(length)
+	if bytesExpected > remainingBytes {
+		return nil, fmt.Errorf("unexpected end of blockfile")
+	}
+
+	blockBytes := make([]byte, length)
+	file.ReadAt(blockBytes, fileOffset+int64(n))
+
+	return blockBytes, nil
+}
+
+func ReadTransaction(file *os.File, fileOffset int64, byteLen int64) ([]byte, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	fileSize := fileInfo.Size()
+
+	// At the end of file
+	if fileOffset+byteLen > fileSize {
+		return nil, nil
+	}
+
+	txBytes := make([]byte, byteLen)
+	file.ReadAt(txBytes, fileOffset)
+
+	return txBytes, nil
+}
