@@ -2,6 +2,7 @@ package index
 
 import (
 	"bytes"
+	"fmt"
 )
 
 func ParseKV(key []byte, value []byte) (idxKV IndexKV) {
@@ -19,6 +20,13 @@ func ParseKV(key []byte, value []byte) (idxKV IndexKV) {
 		idxKV = &IdxTxID{key, value}
 	case byte(0x61): // 'a' : blockNumTranNumIdxKeyPrefix
 		idxKV = &IdxBlockNumTxNum{key, value}
+	case byte(0x62): // 'b' : blockTxIDIdxKeyPrefix
+		if bytes.Equal(keys[1], []byte("blkMgrInfo")) { // indexCheckpointKey
+			idxKV = &IdxBlkMgrInfo{key, value}
+		} else {
+			fmt.Println("unknown prefix starting with 'b'")
+			idxKV = nil
+		}
 	case byte(0x66):
 		idxKV = &IdxFormatKey{key, value}
 	default:
@@ -27,9 +35,9 @@ func ParseKV(key []byte, value []byte) (idxKV IndexKV) {
 		} else if bytes.Equal(keys[1], []byte("blkMgrInfo")) { // indexCheckpointKey
 			idxKV = &IdxBlkMgrInfo{key, value}
 		} else {
+			fmt.Println("unknown prefix")
 			idxKV = nil
 		}
 	}
-
 	return idxKV
 }

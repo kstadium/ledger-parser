@@ -77,10 +77,35 @@ func retrieveTxID(encodedTxIDKey []byte) (string, error) {
 	return string(remainingBytes[:int(txIDLen)]), nil
 }
 
+type IndexValue struct {
+	value   string
+	blkFlp  *fileLocPointer
+	txFlp   *fileLocPointer
+	bfsInfo *BlockfilesInfo
+}
+
+func (iv IndexValue) String() string {
+	str := ""
+	if iv.value != "" {
+		str += fmt.Sprintf("[value]: %s ", iv.value)
+	}
+	if iv.blkFlp != nil {
+		str += fmt.Sprintf("[block FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.blkFlp.fileSuffixNum, iv.blkFlp.Offset, iv.blkFlp.BytesLength)
+	}
+	if iv.txFlp != nil {
+		str += fmt.Sprintf("[transaction FileLocaionPointer] blockFile: %4d, offset: %7d, bytesLength: %6d ", iv.txFlp.fileSuffixNum, iv.txFlp.Offset, iv.txFlp.BytesLength)
+	}
+
+	if iv.bfsInfo != nil {
+		str += fmt.Sprintf("[BlockFilesInfo] latestFileNumber: %4d, latestFileSize: %d, noBlockFiles: %t, lastPersistedBlock: %d", iv.bfsInfo.latestFileNumber, iv.bfsInfo.latestFileSize, iv.bfsInfo.noBlockFiles, iv.bfsInfo.lastPersistedBlock)
+	}
+	return str
+}
+
 type IndexKV interface {
 	Channel() string
 	Key() (string, error)
-	Value() (string, error)
+	Value() (IndexValue, error)
 	Print()
 	Type() int
 }
@@ -103,10 +128,13 @@ func (i IdxBlockNum) Key() (string, error) {
 	return strconv.FormatUint(blockNum, 10), nil
 }
 
-func (i IdxBlockNum) Value() (string, error) {
-	txFLP := fileLocPointer{}
-	err := txFLP.unmarshal(i.value)
-	return fmt.Sprintf("[filenumber] %d, [offset] %7d, [bytelength] %d", txFLP.fileSuffixNum, txFLP.Offset, txFLP.BytesLength), err
+func (i IdxBlockNum) Value() (IndexValue, error) {
+	blkFlp := &fileLocPointer{}
+	err := blkFlp.unmarshal(i.value)
+	if err != nil {
+		return IndexValue{}, err
+	}
+	return IndexValue{blkFlp: blkFlp}, nil
 }
 
 func (i IdxBlockNum) Print() {
@@ -121,7 +149,7 @@ func (i IdxBlockNum) Print() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("[IdxBlockNum][%s] key:  %3s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxBlockNum][%s] key:  %3s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxBlockNum) Type() int {
@@ -144,10 +172,13 @@ func (i IdxBlockHash) Key() (string, error) {
 	return fmt.Sprintf("%x", key), nil
 }
 
-func (i IdxBlockHash) Value() (string, error) {
-	txFLP := fileLocPointer{}
-	err := txFLP.unmarshal(i.value)
-	return fmt.Sprintf("[filenumber] %d, [offset] %7d, [bytelength] %d", txFLP.fileSuffixNum, txFLP.Offset, txFLP.BytesLength), err
+func (i IdxBlockHash) Value() (IndexValue, error) {
+	blkFlp := &fileLocPointer{}
+	err := blkFlp.unmarshal(i.value)
+	if err != nil {
+		return IndexValue{}, err
+	}
+	return IndexValue{blkFlp: blkFlp}, nil
 }
 
 func (i IdxBlockHash) Print() {
@@ -163,7 +194,7 @@ func (i IdxBlockHash) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxBlockHash][%s] key:  %s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxBlockHash][%s] key:  %s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxBlockHash) Type() int {
@@ -190,16 +221,22 @@ func (i IdxTxID) Key() (string, error) {
 	return txid, nil
 }
 
-func (i IdxTxID) Value() (val string, err error) {
+func (i IdxTxID) Value() (IndexValue, error) {
 	txIdxValue := &index.TxIDIndexValue{}
 	gproto.Unmarshal(i.value, txIdxValue)
 	blkFlp := &fileLocPointer{}
 	txFlp := &fileLocPointer{}
 
-	err = blkFlp.unmarshal(txIdxValue.BlkLocation)
+	err := blkFlp.unmarshal(txIdxValue.BlkLocation)
+	if err != nil {
+		return IndexValue{}, err
+	}
 	err = txFlp.unmarshal(txIdxValue.TxLocation)
-	val = fmt.Sprintf("[BlkLocation] fileNumber %d, offset %6d, bytelength %d [TxLocation]fileNumber %d, offset %6d, bytelength %d [TxValidationCode] %d", blkFlp.fileSuffixNum, blkFlp.Offset, blkFlp.BytesLength, txFlp.fileSuffixNum, txFlp.Offset, txFlp.BytesLength, txIdxValue.TxValidationCode)
-	return
+	if err != nil {
+		return IndexValue{}, err
+	}
+
+	return IndexValue{blkFlp: blkFlp, txFlp: txFlp}, nil
 }
 
 func (i IdxTxID) Print() {
@@ -215,7 +252,7 @@ func (i IdxTxID) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxTxID][%s] key:  %s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxTxID][%s] key:  %s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxTxID) Type() int {
@@ -233,7 +270,6 @@ func (i IdxBlockNumTxNum) Channel() string {
 }
 
 func (i IdxBlockNumTxNum) Key() (string, error) {
-
 	keys := bytes.SplitN(i.key, []byte{0x00}, 2)
 	internalKey := keys[1]
 	lenBlockNumByte := int(internalKey[1])
@@ -250,10 +286,13 @@ func (i IdxBlockNumTxNum) Key() (string, error) {
 	return fmt.Sprintf("%3d-%04d", blockNum, txNum), nil
 }
 
-func (i IdxBlockNumTxNum) Value() (string, error) {
-	txFLP := fileLocPointer{}
-	err := txFLP.unmarshal(i.value)
-	return fmt.Sprintf("[filenumber] %d, [offset] %7d, [bytelength] %d", txFLP.fileSuffixNum, txFLP.Offset, txFLP.BytesLength), err
+func (i IdxBlockNumTxNum) Value() (IndexValue, error) {
+	txFlp := &fileLocPointer{}
+	err := txFlp.unmarshal(i.value)
+	if err != nil {
+		return IndexValue{}, err
+	}
+	return IndexValue{txFlp: txFlp}, nil
 }
 
 func (i IdxBlockNumTxNum) Print() {
@@ -269,55 +308,11 @@ func (i IdxBlockNumTxNum) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxBlockNumTxNum][%s] key:  %s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxBlockNumTxNum][%s] key:  %s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxBlockNumTxNum) Type() int {
 	return BlockNumTxNum
-}
-
-// IdxBlockByTx is index for searching file and offset where the block exists to which the transaction belongs. Prefix: 'b'
-type IdxBlockByTx struct {
-	key   []byte
-	value []byte
-}
-
-func (i IdxBlockByTx) Channel() string {
-	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
-}
-
-func (i IdxBlockByTx) Key() (string, error) {
-
-	txid := bytes.SplitN(i.key, []byte{0x00}, 2)[1][1:]
-
-	return fmt.Sprintf("%s", txid), nil
-}
-
-func (i IdxBlockByTx) Value() (string, error) {
-	txFLP := fileLocPointer{}
-	err := txFLP.unmarshal(i.value)
-	return fmt.Sprintf("[filenumber] %d, [offset] %7d, [bytelength] %d\n", txFLP.fileSuffixNum, txFLP.Offset, txFLP.BytesLength), err
-}
-
-func (i IdxBlockByTx) Print() {
-	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	value, err := i.Value()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Printf("[IdxBlockNumTxNum][%s] key:  %s, value: %s\n", channel, key, value)
-}
-
-func (i IdxBlockByTx) Type() int {
-	return BlockByTx
 }
 
 type IdxBlkMgrInfo struct {
@@ -330,17 +325,16 @@ func (i IdxBlkMgrInfo) Channel() string {
 }
 
 func (i IdxBlkMgrInfo) Key() (string, error) {
-	return "IdxBlkMgrInfo", nil
+	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[1]), nil
 }
 
-func (i IdxBlkMgrInfo) Value() (string, error) {
-	blkFileInfo := &index.BlockfilesInfo{}
+func (i IdxBlkMgrInfo) Value() (IndexValue, error) {
+	blkFileInfo := &BlockfilesInfo{}
 	err := blkFileInfo.Unmarshal(i.value)
 	if err != nil {
-		return "", err
+		return IndexValue{}, err
 	}
-	return fmt.Sprintf("%s", blkFileInfo.String()), nil
-
+	return IndexValue{bfsInfo: blkFileInfo}, nil
 }
 
 func (i IdxBlkMgrInfo) Print() {
@@ -357,7 +351,7 @@ func (i IdxBlkMgrInfo) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxBlkMgrInfo][%s] key:  %s, value: %s \n", channel, key, value)
+	fmt.Printf("[IdxBlkMgrInfo][%s] key:  %s, value: %s \n", channel, key, value.String())
 }
 
 func (i IdxBlkMgrInfo) Type() int {
@@ -377,8 +371,8 @@ func (i IdxCheckPoint) Key() (string, error) {
 	return "indexIdxCheckPointKey", nil
 }
 
-func (i IdxCheckPoint) Value() (string, error) {
-	return fmt.Sprintf("%s", strconv.Itoa(utils.GetInt(i.value))), nil
+func (i IdxCheckPoint) Value() (IndexValue, error) {
+	return IndexValue{value: fmt.Sprintf("%s", strconv.Itoa(utils.GetInt(i.value)))}, nil
 
 }
 
@@ -396,7 +390,7 @@ func (i IdxCheckPoint) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxCheckPoint][%s] key:  %s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxCheckPoint][%s] key:  %s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxCheckPoint) Type() int {
@@ -416,8 +410,8 @@ func (i IdxFormatKey) Key() (string, error) {
 	return "_", nil
 }
 
-func (i IdxFormatKey) Value() (string, error) {
-	return fmt.Sprintf("%s", i.value), nil
+func (i IdxFormatKey) Value() (IndexValue, error) {
+	return IndexValue{value: fmt.Sprintf("%s", i.value)}, nil
 }
 
 func (i IdxFormatKey) Print() {
@@ -434,7 +428,7 @@ func (i IdxFormatKey) Print() {
 		return
 	}
 
-	fmt.Printf("[IdxFormatKey][%s] key:  %s, value: %s\n", channel, key, value)
+	fmt.Printf("[IdxFormatKey][%s] key:  %s, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxFormatKey) Type() int {
