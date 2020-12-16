@@ -221,7 +221,7 @@ func (i IdxTxID) Channel() string {
 
 func (i IdxTxID) Key() (string, error) {
 	key := bytes.SplitN(i.key, []byte{0x00}, 2)[1]
-	txid, err := retrieveTxID(key)
+	txid, err := RetrieveTxID(key)
 	if err != nil {
 		return "", err
 	}

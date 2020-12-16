@@ -23,18 +23,18 @@ var (
 	fullScanIteratorValueFormat = byte(1)
 )
 
-func encodeDataKey(ns, key string) []byte {
+func EncodeDataKey(ns, key string) []byte {
 	k := append(dataKeyPrefix, []byte(ns)...)
 	k = append(k, nsKeySep...)
 	return append(k, []byte(key)...)
 }
 
-func decodeDataKey(encodedDataKey []byte) (string, string) {
+func DecodeDataKey(encodedDataKey []byte) (string, string) {
 	split := bytes.SplitN(encodedDataKey, nsKeySep, 2)
 	return string(split[0][1:]), string(split[1])
 }
 
-func dataKeyStarterForNextNamespace(ns string) []byte {
+func DataKeyStarterForNextNamespace(ns string) []byte {
 	k := append(dataKeyPrefix, []byte(ns)...)
 	return append(k, lastKeyIndicator)
 }

@@ -143,6 +143,24 @@ func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	return block, nil
 }
 
+func DeserializeEnvelop(serializedTxEnvBytes []byte) (*common.Envelope, error) {
+	env := &common.Envelope{}
+	err := proto.Unmarshal(serializedTxEnvBytes, env)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal envelope from bytes")
+	}
+	return env, nil
+}
+
+func DeserializeTxPayload(serializedTxPayloadBytes []byte) (*common.Payload, error) {
+	env := &common.Payload{}
+	err := proto.Unmarshal(serializedTxPayloadBytes, env)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal payload from bytes")
+	}
+	return env, nil
+}
+
 func ExtractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	header := &common.BlockHeader{}
 	var err error
