@@ -127,7 +127,7 @@ func nextBlockBytes() ([]byte, error) {
 	return blockBytes, nil
 }
 
-func deserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
+func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	block := &common.Block{}
 	var err error
 	b := utils.NewBuffer(serializedBlockBytes)
@@ -240,7 +240,7 @@ func GetBlocksFromBlockFile(fileName string) ([]Block, error) {
 			// End of file
 			break
 		} else {
-			block, err := deserializeBlock(blockBytes)
+			block, err := DeserializeBlock(blockBytes)
 			if err != nil {
 				return nil, fmt.Errorf("error: cannot deserialize block from file: [%s], error=[%v]", fileName, err)
 			}
