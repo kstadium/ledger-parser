@@ -143,7 +143,7 @@ func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	return block, nil
 }
 
-func extractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
+func ExtractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	header := &common.BlockHeader{}
 	var err error
 	if header.Number, err = buf.DecodeVarint(); err != nil {
@@ -161,7 +161,7 @@ func extractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	return header, nil
 }
 
-func extractData(buf *utils.Buffer) (*common.BlockData, error) {
+func ExtractData(buf *utils.Buffer) (*common.BlockData, error) {
 	data := &common.BlockData{}
 	var numItems uint64
 	var err error
@@ -179,7 +179,7 @@ func extractData(buf *utils.Buffer) (*common.BlockData, error) {
 	return data, nil
 }
 
-func extractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
+func ExtractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
 	metadata := &common.BlockMetadata{}
 	var numItems uint64
 	var metadataEntry []byte
@@ -196,7 +196,7 @@ func extractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
 	return metadata, nil
 }
 
-func extractTxID(txEnvelopBytes []byte) (string, error) {
+func ExtractTxID(txEnvelopBytes []byte) (string, error) {
 	txEnvelope, err := putil.GetEnvelopeFromBlock(txEnvelopBytes)
 	if err != nil {
 		return "", err
