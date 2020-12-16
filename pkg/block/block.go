@@ -131,13 +131,13 @@ func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	block := &common.Block{}
 	var err error
 	b := utils.NewBuffer(serializedBlockBytes)
-	if block.Header, err = extractHeader(b); err != nil {
+	if block.Header, err = ExtractHeader(b); err != nil {
 		return nil, err
 	}
-	if block.Data, err = extractData(b); err != nil {
+	if block.Data, err = ExtractData(b); err != nil {
 		return nil, err
 	}
-	if block.Metadata, err = extractMetadata(b); err != nil {
+	if block.Metadata, err = ExtractMetadata(b); err != nil {
 		return nil, err
 	}
 	return block, nil
