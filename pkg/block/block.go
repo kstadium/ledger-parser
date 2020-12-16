@@ -127,23 +127,41 @@ func nextBlockBytes() ([]byte, error) {
 	return blockBytes, nil
 }
 
-func deserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
+func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	block := &common.Block{}
 	var err error
 	b := utils.NewBuffer(serializedBlockBytes)
-	if block.Header, err = extractHeader(b); err != nil {
+	if block.Header, err = ExtractHeader(b); err != nil {
 		return nil, err
 	}
-	if block.Data, err = extractData(b); err != nil {
+	if block.Data, err = ExtractData(b); err != nil {
 		return nil, err
 	}
-	if block.Metadata, err = extractMetadata(b); err != nil {
+	if block.Metadata, err = ExtractMetadata(b); err != nil {
 		return nil, err
 	}
 	return block, nil
 }
 
-func extractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
+func DeserializeEnvelop(serializedTxEnvBytes []byte) (*common.Envelope, error) {
+	env := &common.Envelope{}
+	err := proto.Unmarshal(serializedTxEnvBytes, env)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal envelope from bytes")
+	}
+	return env, nil
+}
+
+func DeserializeTxPayload(serializedTxPayloadBytes []byte) (*common.Payload, error) {
+	env := &common.Payload{}
+	err := proto.Unmarshal(serializedTxPayloadBytes, env)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal payload from bytes")
+	}
+	return env, nil
+}
+
+func ExtractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	header := &common.BlockHeader{}
 	var err error
 	if header.Number, err = buf.DecodeVarint(); err != nil {
@@ -161,7 +179,7 @@ func extractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	return header, nil
 }
 
-func extractData(buf *utils.Buffer) (*common.BlockData, error) {
+func ExtractData(buf *utils.Buffer) (*common.BlockData, error) {
 	data := &common.BlockData{}
 	var numItems uint64
 	var err error
@@ -179,7 +197,7 @@ func extractData(buf *utils.Buffer) (*common.BlockData, error) {
 	return data, nil
 }
 
-func extractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
+func ExtractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
 	metadata := &common.BlockMetadata{}
 	var numItems uint64
 	var metadataEntry []byte
@@ -196,7 +214,7 @@ func extractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
 	return metadata, nil
 }
 
-func extractTxID(txEnvelopBytes []byte) (string, error) {
+func ExtractTxID(txEnvelopBytes []byte) (string, error) {
 	txEnvelope, err := putil.GetEnvelopeFromBlock(txEnvelopBytes)
 	if err != nil {
 		return "", err
@@ -240,7 +258,7 @@ func GetBlocksFromBlockFile(fileName string) ([]Block, error) {
 			// End of file
 			break
 		} else {
-			block, err := deserializeBlock(blockBytes)
+			block, err := DeserializeBlock(blockBytes)
 			if err != nil {
 				return nil, fmt.Errorf("error: cannot deserialize block from file: [%s], error=[%v]", fileName, err)
 			}
