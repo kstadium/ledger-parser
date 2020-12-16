@@ -54,7 +54,7 @@ func (flp *FileLocPointer) unmarshal(b []byte) error {
 	return nil
 }
 
-func retrieveTxID(encodedTxIDKey []byte) (string, error) {
+func RetrieveTxID(encodedTxIDKey []byte) (string, error) {
 	if len(encodedTxIDKey) == 0 {
 		return "", fmt.Errorf("invalid txIDKey - zero-length slice")
 	}
