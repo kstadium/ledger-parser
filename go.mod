@@ -3,7 +3,6 @@ module github.com/the-medium/ledger-parser
 go 1.15
 
 require (
-	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/Shopify/sarama v1.27.2 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7 // indirect
 	github.com/fsouza/go-dockerclient v1.6.6 // indirect
@@ -13,6 +12,7 @@ require (
 	github.com/hyperledger/fabric v2.1.1+incompatible
 	github.com/hyperledger/fabric-amcl v0.0.0-20200424173818-327c9e2cf77a // indirect
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20201119163726-f8ef75b17719 // indirect
+	github.com/hyperledger/fabric-config v0.0.9
 	github.com/hyperledger/fabric-lib-go v1.0.0 // indirect
 	github.com/hyperledger/fabric-protos-go v0.0.0-20201028172056-a3136dde2354
 	github.com/miekg/pkcs11 v1.0.3 // indirect

@@ -27,62 +27,12 @@ var (
 
 // Parse a block
 func handleBlock(block *common.Block) (b Block, err error) {
-	// fmt.Printf("Block: Number=[%d], CurrentBlockHash=[%s], PreviousBlockHash=[%s]\n",
-	// 	block.GetHeader().Number,
-	// 	base64.StdEncoding.EncodeToString(block.GetHeader().DataHash),
-	// 	base64.StdEncoding.EncodeToString(block.GetHeader().PreviousHash))
-
 	if putil.IsConfigBlock(block) {
-		b = &ConfigBlock{block}
+		b = &ConfigBlock{Block: block}
 	} else {
-		b = &StandardBlock{block}
-		// for _, txEnvBytes := range block.GetData().GetData() {
-		// 	if txid, err := extractTxID(txEnvBytes); err != nil {
-		// 		return "", fmt.Errorf("ERROR: Cannot extract txid, error=[%v]\n", err)
-		// 	} else {
-		// 		fmt.Printf("    txid=%s\n", txid)
-		// 	}
-		// }
+		b = &StandardBlock{Block: block}
 	}
 	return b, nil
-	// write block to file
-	// b, err := proto.Marshal(block)
-	// if err != nil {
-	// 	return "", fmt.Errorf("error: cannot marshal block, error=[%v]", err)
-	// }
-
-	// filename := fmt.Sprintf("block%d.block", block.GetHeader().Number)
-	// if err := ioutil.WriteFile(filename, b, 0644); err != nil {
-	// 	fmt.Printf("ERROR: Cannot write block to file:[%s], error=[%v]\n", filename, err)
-	// }
-
-	// Then you could use utility to read block content, like:
-	// $ configtxlator proto_decode --input block0.block --type common.Block
-
-	// msgType := proto.MessageType("common.Block")
-	// if msgType == nil {
-	// 	return "", fmt.Errorf("message of type %s unknown", msgType)
-	// }
-	// msg := reflect.New(msgType.Elem()).Interface().(proto.Message)
-
-	// err = proto.Unmarshal(b, msg)
-	// if err != nil {
-	// 	return "", fmt.Errorf("%x", err)
-	// }
-
-	// buf := new(bytes.Buffer)
-
-	// err = protolator.DeepMarshalJSON(buf, msg)
-	// if err != nil {
-	// 	return "", fmt.Errorf("%s ", err)
-	// }
-
-	// // filename := fmt.Sprintf("block%d.json", block.GetHeader().Number)
-	// // if err := ioutil.WriteFile(filename, buf.Bytes(), 0644); err != nil {
-	// // 	fmt.Printf("ERROR: Cannot write block to file:[%s], error=[%v]\n", filename, err)
-	// // }
-
-	// return buf.String(), nil
 }
 
 func nextBlockBytes() ([]byte, error) {

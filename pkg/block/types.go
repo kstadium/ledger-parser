@@ -17,7 +17,7 @@ type Block interface {
 }
 
 type ConfigBlock struct {
-	*common.Block
+	Block *common.Block
 }
 
 func (b ConfigBlock) GetTransactionEnvelops() ([]*common.Envelope, error) {
@@ -33,13 +33,13 @@ func (b ConfigBlock) IsConfig() bool {
 }
 
 type StandardBlock struct {
-	*common.Block
+	Block *common.Block
 }
 
 func (b StandardBlock) GetTransactionEnvelops() ([]*common.Envelope, error) {
 
 	txs := make([]*common.Envelope, 0)
-	for _, txEnvBytes := range b.GetData().GetData() {
+	for _, txEnvBytes := range b.Block.GetData().GetData() {
 		txEnvelope, err := putil.GetEnvelopeFromBlock(txEnvBytes)
 		if err != nil {
 			return nil, err
