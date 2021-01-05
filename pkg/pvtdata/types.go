@@ -196,8 +196,8 @@ func (kv IneligibleMissingDataKV) Print() {
 	}
 
 	// parse value
-	bitmap := &bitset.BitSet{}
-	if err := bitmap.UnmarshalBinary(kv.value); err != nil {
+	bitset := &bitset.BitSet{}
+	if err := bitset.UnmarshalBinary(kv.value); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
@@ -215,7 +215,7 @@ func (kv IneligibleMissingDataKV) Print() {
 	msg := fmt.Sprintf("<IneligibleMissingDataKV>\n")
 	msg += fmt.Sprintf("key:\n%s", msgKey)
 	// maybe tx number
-	msg += fmt.Sprintf("value: %s\n", bitmap.String())
+	msg += fmt.Sprintf("value: %s\n", bitset.String())
 	fmt.Println(msg)
 
 	return
