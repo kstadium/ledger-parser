@@ -38,7 +38,8 @@ func ParseKV(key []byte, value []byte) (KVSet, error) {
 	case EligibleMissingDataKeyPrefix:
 		err = fmt.Errorf("eligibleMissingDataKeyPrefix")
 	case IneligibleMissingDataKeyPrefix:
-		err = fmt.Errorf("ineligibleMissingDataKeyPrefix")
+		kvSet = IneligibleMissingDataKV{key, value}
+
 	case CollElgKeyPrefix:
 		err = fmt.Errorf("collElgKeyPrefix")
 	case LastUpdatedOldBlocksKey:
