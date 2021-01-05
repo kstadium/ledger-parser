@@ -53,7 +53,7 @@ func (kv LastCommittedBlockKV) Location() (uint64, uint64, error) {
 }
 
 func (kv LastCommittedBlockKV) Type() int {
-	return int(lastCommittedBlkkey)
+	return int(LastCommittedBlkkey)
 }
 
 func (kv LastCommittedBlockKV) Value() []byte {
@@ -158,7 +158,7 @@ func (kv PvtDataKV) Print() {
 }
 
 func (kv PvtDataKV) Type() int {
-	return int(pvtDataKeyPrefix)
+	return int(PvtDataKeyPrefix)
 }
 
 func (kv PvtDataKV) Value() []byte {
