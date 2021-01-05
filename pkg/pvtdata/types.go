@@ -6,6 +6,7 @@ import (
 
 	goproto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
+	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric/common/ledger/util"
 )
 
@@ -15,7 +16,7 @@ type KVSet interface {
 	Location() (uint64, uint64, error)
 	Print()
 	Type() int
-	Value() string
+	Value() []byte
 }
 
 type LastCommittedBlockKV struct {
@@ -33,11 +34,17 @@ func (kv LastCommittedBlockKV) Key() string {
 
 func (kv LastCommittedBlockKV) Print() {
 	channel := bytes.Split(kv.key, []byte{0x00})[0]
+
+	// last block number s
+	s, _ := goproto.DecodeVarint(kv.value)
+
+	// build message
 	msg := fmt.Sprintf("<LastCommittedBlockKV>\n")
 	msg += fmt.Sprintf("channel: %s\n", channel)
-	msg += fmt.Sprintf("key: %s\n", kv.Key())
-	msg += fmt.Sprintf("value: %s\n", kv.Value())
+	msg += fmt.Sprintf("realkey: %s\n", kv.Key())
+	msg += fmt.Sprintf("value: %d\n", s)
 	fmt.Println(msg)
+
 	return
 }
 
@@ -49,10 +56,8 @@ func (kv LastCommittedBlockKV) Type() int {
 	return int(lastCommittedBlkkey)
 }
 
-func (kv LastCommittedBlockKV) Value() string {
-	s, _ := goproto.DecodeVarint(kv.value)
-
-	return fmt.Sprintf("%d", s)
+func (kv LastCommittedBlockKV) Value() []byte {
+	return kv.value
 }
 
 type PvtDataKV struct {
@@ -65,21 +70,20 @@ func (kv PvtDataKV) Describe() string {
 }
 
 func (kv PvtDataKV) Key() string {
-	// splited := bytes.Split(kv.key, []byte{0x00})
-
-	// return string(splited[len(splited)-1])
-
 	internalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
 
+	// count block Number bytes
 	_, off1, err := util.DecodeOrderPreservingVarUint64(internalKey[1:])
 	if err != nil {
 		return err.Error()
 	}
 
+	// count transaction Number bytes
 	_, off2, err := util.DecodeOrderPreservingVarUint64(internalKey[off1+1:])
 	if err != nil {
 		return err.Error()
 	}
+
 	return string(bytes.SplitN(internalKey[1+off1+off2:], []byte{0x00}, 2)[1])
 }
 
@@ -109,25 +113,47 @@ func (kv PvtDataKV) Print() {
 	splited := bytes.Split(kv.key, []byte{0x00})
 	internalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
 
+	// block number byte
 	_, off1, err := util.DecodeOrderPreservingVarUint64(internalKey[1:])
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
+	// transaction number byte
 	_, off2, err := util.DecodeOrderPreservingVarUint64(internalKey[off1+1:])
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
+	// parse value
+	collPvtdata := &rwset.CollectionPvtReadWriteSet{}
+	err = goproto.Unmarshal(kv.value, collPvtdata)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	rwset := &kvrwset.KVRWSet{}
+	err = goproto.Unmarshal(collPvtdata.Rwset, rwset)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	// build value message
+	value := fmt.Sprintf("\tcollectionName: %s\n", collPvtdata.CollectionName)
+	value += fmt.Sprintf("\trwset: %s\n", rwset.String())
+
+	// build message
 	msg := fmt.Sprintf("<PvtDataKV>\n")
 	msg += fmt.Sprintf("channel: %s\n", splited[0])
 	msg += fmt.Sprintf("chaincode: %s\n", bytes.SplitN(internalKey[1+off1+off2:], []byte{0x00}, 2)[0])
-	msg += fmt.Sprintf("key: %s\n", kv.Key())
-	msg += fmt.Sprintf("value: %s\n", kv.Value())
 	msg += fmt.Sprintf("BlockNum %d\n", bNum)
 	msg += fmt.Sprintf("TxNum %d\n", txNum)
+	msg += fmt.Sprintf("realkey: %s\n", kv.Key())
+	msg += fmt.Sprintf("value:\n%s\n", value)
+
 	fmt.Println(msg)
 }
 
@@ -135,12 +161,6 @@ func (kv PvtDataKV) Type() int {
 	return int(pvtDataKeyPrefix)
 }
 
-func (kv PvtDataKV) Value() string {
-	collPvtdata := &rwset.CollectionPvtReadWriteSet{}
-	err := goproto.Unmarshal(kv.value, collPvtdata)
-	if err != nil {
-		return err.Error()
-	}
-
-	return collPvtdata.String()
+func (kv PvtDataKV) Value() []byte {
+	return kv.value
 }
