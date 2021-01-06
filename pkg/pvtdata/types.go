@@ -2,8 +2,6 @@ package pvtdata
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -136,11 +134,6 @@ func (kv PvtDataKV) Print() {
 		return
 	}
 
-	h1 := sha256.New()
-	h1.Write([]byte(collPvtdata.Rwset))
-	encodedPvtRWSetHash := base64.StdEncoding.EncodeToString(h1.Sum(nil))
-	fmt.Println("encoded_pvt_rwset_hash:", encodedPvtRWSetHash)
-
 	ccColl := bytes.SplitN(internalKey[1+off1+off2:], []byte{0x00}, 2)
 	chaincodeName := ccColl[0]
 	collectionName := ccColl[1]
@@ -223,7 +216,7 @@ func (kv IneligibleMissingDataKV) Print() {
 
 func (kv IneligibleMissingDataKV) Location() (uint64, uint64, error) {
 	splittedKey := bytes.SplitN(kv.key[1:], []byte{byte(0)}, 4)
-	blkNum, _ := decodeReverseOrderVarUint64(splittedKey[3])
+	blkNum, _ := DecodeReverseOrderVarUint64(splittedKey[3])
 	return blkNum, 0, nil
 }
 
@@ -235,9 +228,31 @@ func (kv IneligibleMissingDataKV) Value() []byte {
 	return kv.value
 }
 
+// encodeReverseOrderVarUint64 returns a byte-representation for a uint64 number such that
+// the number is first subtracted from MaxUint64 and then all the leading 0xff bytes
+// are trimmed and replaced by the number of such trimmed bytes. This helps in reducing the size.
+// In the byte order comparison this encoding ensures that EncodeReverseOrderVarUint64(A) > EncodeReverseOrderVarUint64(B),
+// If B > A
+func EncodeReverseOrderVarUint64(number uint64) []byte {
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, math.MaxUint64-number)
+	numFFBytes := 0
+	for _, b := range bytes {
+		if b != 0xff {
+			break
+		}
+		numFFBytes++
+	}
+	size := 8 - numFFBytes
+	encodedBytes := make([]byte, size+1)
+	encodedBytes[0] = proto.EncodeVarint(uint64(numFFBytes))[0]
+	copy(encodedBytes[1:], bytes[numFFBytes:])
+	return encodedBytes
+}
+
 // decodeReverseOrderVarUint64 decodes the number from the bytes obtained from function 'EncodeReverseOrderVarUint64'.
 // Also, returns the number of bytes that are consumed in the process
-func decodeReverseOrderVarUint64(bytes []byte) (uint64, int) {
+func DecodeReverseOrderVarUint64(bytes []byte) (uint64, int) {
 	s, _ := proto.DecodeVarint(bytes)
 	numFFBytes := int(s)
 	decodedBytes := make([]byte, 8)
