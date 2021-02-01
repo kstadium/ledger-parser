@@ -13,6 +13,7 @@ import (
 type Block interface {
 	GetTransactionEnvelops() ([]*common.Envelope, error)
 	GetTxRWSets(txEnvelopes []*common.Envelope) (txRWSets []*rwsetutil.TxRwSet, err error)
+	GetTxFilters() []byte
 	IsConfig() bool
 }
 
@@ -26,6 +27,10 @@ func (b ConfigBlock) GetTransactionEnvelops() ([]*common.Envelope, error) {
 }
 func (b ConfigBlock) GetTxRWSets(txEnvelopes []*common.Envelope) (txRWSets []*rwsetutil.TxRwSet, err error) {
 	return nil, nil
+}
+
+func (b ConfigBlock) GetTxFilters() []byte {
+	return b.Block.Metadata.Metadata[common.BlockMetadataIndex_TRANSACTIONS_FILTER]
 }
 
 func (b ConfigBlock) IsConfig() bool {
@@ -91,6 +96,10 @@ func (b StandardBlock) GetTxRWSets(txEnvelopes []*common.Envelope) (txRWSets []*
 		}
 	}
 	return txRWSets, nil
+}
+
+func (b StandardBlock) GetTxFilters() []byte {
+	return b.Block.Metadata.Metadata[common.BlockMetadataIndex_TRANSACTIONS_FILTER]
 }
 
 func (b StandardBlock) IsConfig() bool {
