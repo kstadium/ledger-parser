@@ -56,8 +56,15 @@ func (b StandardBlock) GetTransactionEnvelops() ([]*common.Envelope, error) {
 }
 
 func (b StandardBlock) GetTxRWSets(txEnvelopes []*common.Envelope) (txRWSets []*rwsetutil.TxRwSet, err error) {
-	// var txRWSets []*rwsetutil.TxRwSet
-	for _, txEnvelope := range txEnvelopes {
+	txfilters := b.GetTxFilters()
+	if len(txEnvelopes) != len(txfilters) {
+		return nil, fmt.Errorf("The number of tx does not match the number of filters")
+	}
+
+	for idx, txEnvelope := range txEnvelopes {
+		if peer.TxValidationCode(txfilters[idx]) != peer.TxValidationCode_VALID {
+			continue
+		}
 
 		txPayload, err := putil.UnmarshalPayload(txEnvelope.Payload)
 		if err != nil {
