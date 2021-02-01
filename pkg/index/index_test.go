@@ -1,7 +1,6 @@
 package index
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,11 +20,9 @@ func TestParseKV(t *testing.T) {
 	for iter.Next() {
 		// Remember that the contents of the returned slice should not be modified, and
 		// only valid until the next call to Next.
-		var idxKV IndexKV = ParseKV(iter.Key(), iter.Value(), "")
-		if idxKV == nil {
-			fmt.Println("nil idxKV")
-			break
-		}
+		idxKV, err := ParseKV(iter.Key(), iter.Value(), "")
+		assert.NoError(t, err)
+		assert.NotNil(t, idxKV)
 		idxKV.Print()
 	}
 	iter.Release()

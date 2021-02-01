@@ -5,10 +5,10 @@ import (
 	"fmt"
 )
 
-func ParseKV(key []byte, value []byte, channel string) (idxKV IndexKV) {
+func ParseKV(key []byte, value []byte, channel string) (idxKV IndexKV, err error) {
 	keys := bytes.SplitN(key, []byte{0x00}, 2)
 	if string(keys[0]) != channel && channel != "" {
-		return nil
+		return nil, nil
 	}
 
 	prefix := keys[1][0]
@@ -26,8 +26,7 @@ func ParseKV(key []byte, value []byte, channel string) (idxKV IndexKV) {
 		if bytes.Equal(keys[1], []byte("blkMgrInfo")) { // indexCheckpointKey
 			idxKV = &IdxBlkMgrInfo{key, value}
 		} else {
-			fmt.Println("unknown prefix starting with 'b'")
-			idxKV = nil
+			return nil, fmt.Errorf("unknown prefix starting with 'b'")
 		}
 	case byte(0x66):
 		idxKV = &IdxFormatKey{key, value}
@@ -37,9 +36,8 @@ func ParseKV(key []byte, value []byte, channel string) (idxKV IndexKV) {
 		} else if bytes.Equal(keys[1], []byte("blkMgrInfo")) { // indexCheckpointKey
 			idxKV = &IdxBlkMgrInfo{key, value}
 		} else {
-			fmt.Println("unknown prefix")
-			idxKV = nil
+			return nil, fmt.Errorf("unknown prefix")
 		}
 	}
-	return idxKV
+	return idxKV, nil
 }
