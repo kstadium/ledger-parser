@@ -64,6 +64,7 @@ func (kv ChannelConfigKV) Print() {
 		return
 	}
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue:\n\t\t%s\n\tversion: %s\n\tmetadata:%s\n", b, versionedValue.Version.String(), versionedValue.Metadata)
 }
@@ -118,6 +119,7 @@ func (kv SystemPublicKV) Print() {
 	}
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
@@ -207,6 +209,7 @@ func (kv SystemPrivateKV) Print() {
 	}
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
@@ -265,6 +268,7 @@ func (kv UserPublicKV) Print() {
 	var versionedValue, _ = utils.DecodeValue(kv.value)
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", versionedValue.Value, versionedValue.Version.String(), versionedValue.Metadata)
 }
@@ -321,6 +325,7 @@ func (kv UserPrivateKV) Print() {
 	}
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
 }
@@ -368,6 +373,7 @@ func (kv FormatVersionKV) Print() {
 	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\tvalue: %s\n", string(kv.value))
 
@@ -403,6 +409,8 @@ func (kv SavePointKV) Print() {
 	realValue := fmt.Sprintf("BlockNum : %d\n\tTxNum : %d", h.BlockNum, h.TxNum)
 
 	fmt.Printf("<%s>\n", kv.describe)
+	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
+
 	fmt.Printf("RealKey: %s\n", realKey)
 	fmt.Printf("Value\n\t%s\n", realValue)
 }
