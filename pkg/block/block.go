@@ -93,24 +93,6 @@ func DeserializeBlock(serializedBlockBytes []byte) (*common.Block, error) {
 	return block, nil
 }
 
-func DeserializeEnvelop(serializedTxEnvBytes []byte) (*common.Envelope, error) {
-	env := &common.Envelope{}
-	err := proto.Unmarshal(serializedTxEnvBytes, env)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal envelope from bytes")
-	}
-	return env, nil
-}
-
-func DeserializeTxPayload(serializedTxPayloadBytes []byte) (*common.Payload, error) {
-	env := &common.Payload{}
-	err := proto.Unmarshal(serializedTxPayloadBytes, env)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal payload from bytes")
-	}
-	return env, nil
-}
-
 func ExtractHeader(buf *utils.Buffer) (*common.BlockHeader, error) {
 	header := &common.BlockHeader{}
 	var err error
@@ -162,22 +144,6 @@ func ExtractMetadata(buf *utils.Buffer) (*common.BlockMetadata, error) {
 		metadata.Metadata = append(metadata.Metadata, metadataEntry)
 	}
 	return metadata, nil
-}
-
-func ExtractTxID(txEnvelopBytes []byte) (string, error) {
-	txEnvelope, err := putil.GetEnvelopeFromBlock(txEnvelopBytes)
-	if err != nil {
-		return "", err
-	}
-	txPayload, err := putil.UnmarshalPayload(txEnvelope.Payload)
-	if err != nil {
-		return "", nil
-	}
-	chdr, err := putil.UnmarshalChannelHeader(txPayload.Header.ChannelHeader)
-	if err != nil {
-		return "", err
-	}
-	return chdr.TxId, nil
 }
 
 func GetBlocksFromBlockFile(fileName string) ([]Block, error) {
