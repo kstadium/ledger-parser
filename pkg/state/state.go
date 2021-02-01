@@ -217,8 +217,15 @@ func handleUCCKV(key []byte, value []byte) (kvSet KVSet) {
 	return
 }
 
-func ParseKV(key []byte, value []byte) (kvSet KVSet, err error) {
-	internalKey := bytes.SplitN(key, []byte{0x00}, 2)[1]
+// ParseKV returns kvSet that converts byte represented KV to human readable string.
+// if empty string is given for parameter channel, it parses for KV from all channels.
+func ParseKV(key []byte, value []byte, channel string) (kvSet KVSet, err error) {
+	nsKey := bytes.SplitN(key, []byte{0x00}, 2)
+	if string(nsKey[0]) != channel && channel != "" {
+		return nil, nil
+	}
+
+	internalKey := nsKey[1]
 	prefix := internalKey[0]
 	switch prefix {
 	case byte(0x64): // 'd' : dataKeyPrefix

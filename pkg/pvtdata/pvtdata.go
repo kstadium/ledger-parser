@@ -19,8 +19,13 @@ var (
 	EmptyValue = []byte{}
 )
 
-func ParseKV(key []byte, value []byte) (KVSet, error) {
-	prefix := bytes.SplitN(key, []byte{0x00}, 2)[1][0]
+func ParseKV(key []byte, value []byte, channel string) (KVSet, error) {
+	nsKey := bytes.SplitN(key, []byte{0x00}, 2)
+	if string(nsKey[0]) != channel && channel != "" {
+		return nil, nil
+	}
+
+	prefix := nsKey[1][0]
 	var kvSet KVSet
 	var err error
 	switch prefix {

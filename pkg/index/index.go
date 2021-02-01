@@ -5,11 +5,13 @@ import (
 	"fmt"
 )
 
-func ParseKV(key []byte, value []byte) (idxKV IndexKV) {
-
+func ParseKV(key []byte, value []byte, channel string) (idxKV IndexKV) {
 	keys := bytes.SplitN(key, []byte{0x00}, 2)
-	internalKey := keys[1]
-	prefix := internalKey[0]
+	if string(keys[0]) != channel && channel != "" {
+		return nil
+	}
+
+	prefix := keys[1][0]
 
 	switch prefix {
 	case byte(0x6e): // 'n' : blockNumIdxKeyPrefix

@@ -4,11 +4,15 @@ import (
 	"bytes"
 )
 
-func ParseKV(key []byte, value []byte) (kvSet KVSet, err error) {
-	channel := string(bytes.SplitN(key, []byte{0x00}, 2)[0])
-	ccInternalKey := bytes.SplitN(key, []byte{0x00}, 2)[1]
+func ParseKV(key []byte, value []byte, channel string) (kvSet KVSet, err error) {
+	nsKey := bytes.SplitN(key, []byte{0x00}, 2)
+	if string(nsKey[0]) != channel && channel != "" {
+		return nil, nil
+	}
 
-	if channel == "_" {
+	ccInternalKey := nsKey[1]
+
+	if string(nsKey[0]) == "_" {
 		// formatKey
 		kvSet = &FormatVersionKV{key, value}
 	} else if bytes.Compare(ccInternalKey, []byte{0x73}) == 0 {

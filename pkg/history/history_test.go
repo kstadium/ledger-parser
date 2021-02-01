@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 	iter := db.NewIterator(nil, nil)
 
 	for iter.Next() {
-		kvSet, _ := ParseKV(iter.Key(), iter.Value())
+		kvSet, _ := ParseKV(iter.Key(), iter.Value(), "")
 		kvSet.Print()
 	}
 	iter.Release()

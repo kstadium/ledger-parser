@@ -20,7 +20,7 @@ func TestParseKV(t *testing.T) {
 	for iter.Next() {
 		// Remember that the contents of the returned slice should not be modified, and
 		// only valid until the next call to Next.
-		stateKV, err := ParseKV(iter.Key(), iter.Value())
+		stateKV, err := ParseKV(iter.Key(), iter.Value(), "")
 		assert.NoError(t, err)
 		stateKV.Print()
 	}
