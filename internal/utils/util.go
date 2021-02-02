@@ -7,8 +7,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/common/ledger/util"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/stateleveldb/msgs"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/version"
-	"github.com/the-medium/ledger-parser/internal/state"
 )
 
 func toMap(i interface{}) (map[string]interface{}, error) {
@@ -73,12 +73,13 @@ func DecomposeVersionedValue(versionedValue *statedb.VersionedValue) []byte {
 
 // decodeValue decodes the statedb value bytes
 func DecodeValue(encodedValue []byte) (*statedb.VersionedValue, error) {
-	dbValue := &state.DBValue{}
+	// stateleveldb.DBValue(2.2.1) == msg.VersionedValueProto(2.1.1)
+	dbValue := &msgs.VersionedValueProto{}
 	err := proto.Unmarshal(encodedValue, dbValue)
 	if err != nil {
 		return nil, err
 	}
-	ver, _, err := version.NewHeightFromBytes(dbValue.Version)
+	ver, _, err := version.NewHeightFromBytes(dbValue.VersionBytes)
 	if err != nil {
 		return nil, err
 	}
