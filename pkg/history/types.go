@@ -3,6 +3,7 @@ package history
 import (
 	"bytes"
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/hyperledger/fabric/common/ledger/util"
 	"github.com/the-medium/ledger-parser/internal/utils"
@@ -11,8 +12,11 @@ import (
 const (
 	HistoryFormatVersion = iota
 	HistorySavePoint
+	HistoryInitialized
 	HistoryGeneral
 )
+
+var InitializedKeyName = "\x00" + string(utf8.MaxRune) + "initialized"
 
 type KVSet interface {
 	Describe() string
@@ -114,6 +118,90 @@ func (kv SavePointKV) Value() string {
 	return fmt.Sprintf("%d", kv.value)
 }
 
+type InitializedKV struct {
+	key   []byte
+	value []byte
+}
+
+func (kv InitializedKV) Describe() string {
+	return "indicates if chancode is initialized"
+}
+
+func (kv InitializedKV) Key() string {
+	ccInternalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
+	internalKey := bytes.SplitN(ccInternalKey, []byte{0x00}, 2)[1]
+	offset := 1
+
+	size := utils.GetInt([]byte{internalKey[0]})
+	offset += size
+
+	keySize := utils.GetInt(internalKey[1:offset])
+	offset += keySize
+
+	realKey := string(internalKey[1+size : offset])
+	return realKey
+}
+
+func (kv InitializedKV) Location() (uint64, uint64, error) {
+	ccInternalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
+	internalKey := bytes.SplitN(ccInternalKey, []byte{0x00}, 2)[1]
+	offset := 0
+	sizeSize := utils.GetInt(internalKey[0 : offset+1])
+	offset += 1
+	keySize := utils.GetInt(internalKey[offset : offset+sizeSize])
+	offset += keySize
+
+	locBytes := bytes.SplitN(internalKey[offset:], []byte{0x00}, 2)[1]
+	offset = 0
+	sizeSize = utils.GetInt(locBytes[0 : offset+1])
+	offset += 1
+	blockNum := utils.GetInt(locBytes[offset : offset+sizeSize])
+	offset += sizeSize
+	sizeSize = utils.GetInt(locBytes[offset : offset+1])
+
+	offset += 1
+	txNum := utils.GetInt(locBytes[offset : offset+sizeSize])
+	return uint64(blockNum), uint64(txNum), nil
+}
+
+func (kv InitializedKV) Print() {
+	channel := string(bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
+	ccInternalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
+	internalKey := bytes.SplitN(ccInternalKey, []byte{0x00}, 2)[1]
+	offset := 1
+
+	size := utils.GetInt([]byte{internalKey[0]})
+	offset += size
+
+	keySize := utils.GetInt(internalKey[1:offset])
+	offset += keySize
+
+	realKey := string(internalKey[1+size : offset])
+	offset++
+
+	blockNum, txNum, err := kv.Location()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	msg := fmt.Sprintf("<InitializedKV>\n")
+	msg += fmt.Sprintf("channel: %s\n", channel)
+	msg += fmt.Sprintf("RealKey: %s\n", realKey)
+	msg += fmt.Sprintf("RealValue: %s\n", kv.value)
+	msg += fmt.Sprintf("Block Number: %d\n", blockNum)
+	msg += fmt.Sprintf("Tx Number: %d\n", txNum)
+	fmt.Println(msg)
+}
+
+func (kv InitializedKV) Type() int {
+	return HistoryInitialized
+}
+
+func (kv InitializedKV) Value() string {
+	return string(kv.value)
+}
+
 type GeneralKV struct {
 	key   []byte
 	value []byte
@@ -146,7 +234,6 @@ func (kv GeneralKV) Location() (uint64, uint64, error) {
 
 	offset := 1
 	blockNumSize := utils.GetInt(loc[0:offset])
-
 	blockNum, offset, err := util.DecodeOrderPreservingVarUint64(loc[0 : offset+blockNumSize+1])
 	if err != nil {
 		return 0, 0, err

@@ -17,6 +17,8 @@ func ParseKV(key []byte, value []byte, channel string) (kvSet KVSet, err error) 
 		kvSet = &FormatVersionKV{key, value}
 	} else if bytes.Compare(ccInternalKey, []byte{0x73}) == 0 {
 		kvSet = &SavePointKV{key, value}
+	} else if bytes.Contains(ccInternalKey, []byte(InitializedKeyName)) {
+		kvSet = &InitializedKV{key, value}
 	} else {
 		kvSet = &GeneralKV{key, value}
 	}
