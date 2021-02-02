@@ -6,14 +6,15 @@ import (
 )
 
 var (
-	PendingCommitKey               = byte(0)
-	LastCommittedBlkkey            = byte(0x01)
-	PvtDataKeyPrefix               = byte(2)
-	ExpiryKeyPrefix                = byte(3)
-	EligibleMissingDataKeyPrefix   = byte(4)
-	IneligibleMissingDataKeyPrefix = byte(5)
-	CollElgKeyPrefix               = byte(6)
-	LastUpdatedOldBlocksKey        = byte(7)
+	PendingCommitKey                      = byte(0)
+	LastCommittedBlkkey                   = byte(1)
+	PvtDataKeyPrefix                      = byte(2)
+	ExpiryKeyPrefix                       = byte(3)
+	EligiblePrioritizedMissingDataGroup   = byte(4)
+	IneligibleMissingDataKeyGroup         = byte(5)
+	CollEligibleKeyPrefix                 = byte(6)
+	LastUpdatedOldBlocksKey               = byte(7)
+	EligibleDeprioritizedMissingDataGroup = byte(8)
 
 	NilByte    = byte(0)
 	EmptyValue = []byte{}
@@ -40,15 +41,19 @@ func ParseKV(key []byte, value []byte, channel string) (KVSet, error) {
 	// TODO
 	case ExpiryKeyPrefix:
 		err = fmt.Errorf("expiryKeyPrefix")
-	case EligibleMissingDataKeyPrefix:
+	case EligiblePrioritizedMissingDataGroup:
 		err = fmt.Errorf("eligibleMissingDataKeyPrefix")
-	case IneligibleMissingDataKeyPrefix:
+	case IneligibleMissingDataKeyGroup:
 		kvSet = IneligibleMissingDataKV{key, value}
 
-	case CollElgKeyPrefix:
+	case CollEligibleKeyPrefix:
 		err = fmt.Errorf("collElgKeyPrefix")
 	case LastUpdatedOldBlocksKey:
 		err = fmt.Errorf("lastUpdatedOldBlocksKey")
+	case EligibleDeprioritizedMissingDataGroup:
+		err = fmt.Errorf("EligibleDeprioritizedMissingDataGroup")
+	default:
+		err = fmt.Errorf("unknown prefix")
 	}
 	return kvSet, err
 }

@@ -221,7 +221,7 @@ func (kv IneligibleMissingDataKV) Location() (uint64, uint64, error) {
 }
 
 func (kv IneligibleMissingDataKV) Type() int {
-	return int(IneligibleMissingDataKeyPrefix)
+	return int(IneligibleMissingDataKeyGroup)
 }
 
 func (kv IneligibleMissingDataKV) Value() []byte {
