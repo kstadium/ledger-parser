@@ -8,8 +8,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	gproto "github.com/golang/protobuf/proto"
+	"github.com/hyperledger/fabric/common/ledger/blkstorage/fsblkstorage/msgs"
 	"github.com/hyperledger/fabric/common/ledger/util"
-	"github.com/the-medium/ledger-parser/internal/index"
 	"github.com/the-medium/ledger-parser/internal/utils"
 )
 
@@ -230,7 +230,9 @@ func (i IdxTxID) Key() (string, error) {
 }
 
 func (i IdxTxID) Value() (IndexValue, error) {
-	txIdxValue := &index.TxIDIndexValue{}
+	// blkstorage.TxIDIndexValue{} and msgs.TxIDIndexValProto{} are same structure
+	// txIdxValue := &index.TxIDIndexValue{} // v2.2.1
+	txIdxValue := &msgs.TxIDIndexValProto{} // v2.1.1
 	gproto.Unmarshal(i.value, txIdxValue)
 	blkFlp := &FileLocPointer{}
 	txFlp := &FileLocPointer{}
