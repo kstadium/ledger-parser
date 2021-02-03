@@ -24,7 +24,7 @@ const (
 
 type KVSet interface {
 	Describe() string
-	Key() string
+	Key() []byte
 	Print()
 	Type() int
 	Value() string
@@ -40,9 +40,8 @@ func (kv ChannelConfigKV) Describe() string {
 	return kv.describe
 }
 
-func (kv ChannelConfigKV) Key() string {
-	return "CHANNEL_CONFIG_ENV_BYTES"
-
+func (kv ChannelConfigKV) Key() []byte {
+	return kv.key
 }
 
 func (kv ChannelConfigKV) Print() {
@@ -100,10 +99,8 @@ func (kv SystemPublicKV) Describe() string {
 	return kv.describe
 }
 
-func (kv SystemPublicKV) Key() string {
-	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-	return realKey
-
+func (kv SystemPublicKV) Key() []byte {
+	return kv.key
 }
 
 func (kv SystemPublicKV) Print() {
@@ -151,30 +148,8 @@ func (kv SystemPrivateKV) Describe() string {
 	return kv.describe
 }
 
-func (kv SystemPrivateKV) Key() string {
-	_, realKey, pvtPrefix := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-
-	subNameSpace := strings.Split(realKey, "/")[0]
-	switch pvtPrefix {
-	case byte('p'): // privateData
-		switch subNameSpace {
-		case "namespaces":
-			// do nothing
-		case "chaincode-sources":
-			// do nothing
-		default:
-			return "unknown subnamespace"
-		}
-
-	case byte('h'): // privateDataHash
-		realKey = hex.EncodeToString([]byte(realKey))
-
-	default: // publicData
-		return "unknown pvtPrefix"
-	}
-
-	return realKey
-
+func (kv SystemPrivateKV) Key() []byte {
+	return kv.key
 }
 
 func (kv SystemPrivateKV) Print() {
@@ -258,9 +233,8 @@ func (kv UserPublicKV) Describe() string {
 	return kv.describe
 }
 
-func (kv UserPublicKV) Key() string {
-	_, realKey, _ := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-	return realKey
+func (kv UserPublicKV) Key() []byte {
+	return kv.key
 }
 
 func (kv UserPublicKV) Print() {
@@ -292,17 +266,8 @@ func (kv UserPrivateKV) Describe() string {
 	return kv.describe
 }
 
-func (kv UserPrivateKV) Key() string {
-	_, realKey, pvtPrefix := getDataNSKey(bytes.SplitN(kv.key, []byte{0x00}, 2)[1])
-	switch pvtPrefix {
-	case byte('p'): // privateData
-		// do nothing
-	case byte('h'): // privateDataHash
-		realKey = hex.EncodeToString([]byte(realKey))
-	default: // publicData?
-		return "unknown pvtPrefix"
-	}
-	return realKey
+func (kv UserPrivateKV) Key() []byte {
+	return kv.key
 }
 
 func (kv UserPrivateKV) Print() {
@@ -364,9 +329,8 @@ func (kv FormatVersionKV) Describe() string {
 	return kv.describe
 }
 
-func (kv FormatVersionKV) Key() string {
-	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	return string(realKey)
+func (kv FormatVersionKV) Key() []byte {
+	return kv.key
 }
 
 func (kv FormatVersionKV) Print() {
@@ -398,9 +362,8 @@ func (kv SavePointKV) Describe() string {
 	return kv.describe
 }
 
-func (kv SavePointKV) Key() string {
-	realKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	return string(realKey)
+func (kv SavePointKV) Key() []byte {
+	return kv.key
 }
 
 func (kv SavePointKV) Print() {

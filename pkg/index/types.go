@@ -112,7 +112,7 @@ func (iv IndexValue) String() string {
 
 type IndexKV interface {
 	Channel() string
-	Key() (string, error)
+	Key() []byte
 	Value() (IndexValue, error)
 	Print()
 	Type() int
@@ -128,12 +128,8 @@ func (i IdxBlockNum) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxBlockNum) Key() (string, error) {
-	blockNum, _, err := util.DecodeOrderPreservingVarUint64(bytes.SplitN(i.key, []byte{0x00}, 2)[1][1:])
-	if err != nil {
-		return "", err
-	}
-	return strconv.FormatUint(blockNum, 10), nil
+func (i IdxBlockNum) Key() []byte {
+	return i.key
 }
 
 func (i IdxBlockNum) Value() (IndexValue, error) {
@@ -147,7 +143,12 @@ func (i IdxBlockNum) Value() (IndexValue, error) {
 
 func (i IdxBlockNum) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
+	blockNum, _, err := util.DecodeOrderPreservingVarUint64(bytes.SplitN(i.key, []byte{0x00}, 2)[1][1:])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	key, err := strconv.FormatUint(blockNum, 10), nil
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -174,10 +175,8 @@ func (i IdxBlockHash) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxBlockHash) Key() (string, error) {
-	key := bytes.SplitN(i.key, []byte{0x00}, 2)[1][1:]
-
-	return fmt.Sprintf("%x", key), nil
+func (i IdxBlockHash) Key() []byte {
+	return i.key
 }
 
 func (i IdxBlockHash) Value() (IndexValue, error) {
@@ -191,18 +190,14 @@ func (i IdxBlockHash) Value() (IndexValue, error) {
 
 func (i IdxBlockHash) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	key := bytes.SplitN(i.key, []byte{0x00}, 2)[1][1:]
 	value, err := i.Value()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Printf("[IdxBlockHash][%s] key:  %s, value: %s\n", channel, key, value.String())
+	fmt.Printf("[IdxBlockHash][%s] key:  %x, value: %s\n", channel, key, value.String())
 }
 
 func (i IdxBlockHash) Type() int {
@@ -219,14 +214,8 @@ func (i IdxTxID) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxTxID) Key() (string, error) {
-	key := bytes.SplitN(i.key, []byte{0x00}, 2)[1]
-	txid, err := RetrieveTxID(key)
-	if err != nil {
-		return "", err
-	}
-
-	return txid, nil
+func (i IdxTxID) Key() []byte {
+	return i.key
 }
 
 func (i IdxTxID) Value() (IndexValue, error) {
@@ -251,11 +240,12 @@ func (i IdxTxID) Value() (IndexValue, error) {
 
 func (i IdxTxID) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
+	key, err := RetrieveTxID(bytes.SplitN(i.key, []byte{0x00}, 2)[1])
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	value, err := i.Value()
 	if err != nil {
 		fmt.Println(err)
@@ -279,21 +269,8 @@ func (i IdxBlockNumTxNum) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxBlockNumTxNum) Key() (string, error) {
-	keys := bytes.SplitN(i.key, []byte{0x00}, 2)
-	internalKey := keys[1]
-	lenBlockNumByte := int(internalKey[1])
-	offset := 2
-	blockNumByte := internalKey[offset : offset+lenBlockNumByte]
-	blockNum := utils.GetInt(blockNumByte)
-	offset += lenBlockNumByte
-
-	lenTxNumByte := int(internalKey[offset])
-	offset++
-	txNumByte := internalKey[offset : offset+lenTxNumByte]
-	txNum := utils.GetInt(txNumByte)
-
-	return fmt.Sprintf("%3d-%04d", blockNum, txNum), nil
+func (i IdxBlockNumTxNum) Key() []byte {
+	return i.key
 }
 
 func (i IdxBlockNumTxNum) Value() (IndexValue, error) {
@@ -307,18 +284,26 @@ func (i IdxBlockNumTxNum) Value() (IndexValue, error) {
 
 func (i IdxBlockNumTxNum) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	keys := bytes.SplitN(i.key, []byte{0x00}, 2)
+	internalKey := keys[1]
+	lenBlockNumByte := int(internalKey[1])
+	offset := 2
+	blockNumByte := internalKey[offset : offset+lenBlockNumByte]
+	blockNum := utils.GetInt(blockNumByte)
+	offset += lenBlockNumByte
+
+	lenTxNumByte := int(internalKey[offset])
+	offset++
+	txNumByte := internalKey[offset : offset+lenTxNumByte]
+	txNum := utils.GetInt(txNumByte)
+
 	value, err := i.Value()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Printf("[IdxBlockNumTxNum][%s] key:  %s, value: %s\n", channel, key, value.String())
+	fmt.Printf("[IdxBlockNumTxNum][%s] key: %3d-%04d, value: %s\n", channel, blockNum, txNum, value.String())
 }
 
 func (i IdxBlockNumTxNum) Type() int {
@@ -334,8 +319,8 @@ func (i IdxBlkMgrInfo) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxBlkMgrInfo) Key() (string, error) {
-	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[1]), nil
+func (i IdxBlkMgrInfo) Key() []byte {
+	return i.key
 }
 
 func (i IdxBlkMgrInfo) Value() (IndexValue, error) {
@@ -349,12 +334,7 @@ func (i IdxBlkMgrInfo) Value() (IndexValue, error) {
 
 func (i IdxBlkMgrInfo) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	key := string(bytes.SplitN(i.key, []byte{0x00}, 2)[1])
 	value, err := i.Value()
 	if err != nil {
 		fmt.Println(err)
@@ -377,8 +357,8 @@ func (i IdxCheckPoint) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxCheckPoint) Key() (string, error) {
-	return "indexIdxCheckPointKey", nil
+func (i IdxCheckPoint) Key() []byte {
+	return i.key
 }
 
 func (i IdxCheckPoint) Value() (IndexValue, error) {
@@ -388,11 +368,7 @@ func (i IdxCheckPoint) Value() (IndexValue, error) {
 
 func (i IdxCheckPoint) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	key := "indexIdxCheckPointKey"
 
 	value, err := i.Value()
 	if err != nil {
@@ -416,8 +392,8 @@ func (i IdxFormatKey) Channel() string {
 	return string(bytes.SplitN(i.key, []byte{0x00}, 2)[0])
 }
 
-func (i IdxFormatKey) Key() (string, error) {
-	return "_", nil
+func (i IdxFormatKey) Key() []byte {
+	return i.key
 }
 
 func (i IdxFormatKey) Value() (IndexValue, error) {
@@ -426,12 +402,7 @@ func (i IdxFormatKey) Value() (IndexValue, error) {
 
 func (i IdxFormatKey) Print() {
 	channel := i.Channel()
-	key, err := i.Key()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	key := "_"
 	value, err := i.Value()
 	if err != nil {
 		fmt.Println(err)

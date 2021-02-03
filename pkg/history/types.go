@@ -20,7 +20,7 @@ var InitializedKeyName = "\x00" + string(utf8.MaxRune) + "initialized"
 
 type KVSet interface {
 	Describe() string
-	Key() string
+	Key() []byte
 	Location() (uint64, uint64, error)
 	Print()
 	Type() int
@@ -40,8 +40,8 @@ func (kv FormatVersionKV) Location() (uint64, uint64, error) {
 	return 0, 0, fmt.Errorf("not supported")
 }
 
-func (kv FormatVersionKV) Key() string {
-	return "formatKey"
+func (kv FormatVersionKV) Key() []byte {
+	return kv.key
 }
 
 func (kv FormatVersionKV) Print() {
@@ -71,8 +71,8 @@ func (kv SavePointKV) Describe() string {
 	return "block height save point"
 }
 
-func (kv SavePointKV) Key() string {
-	return "savePointKey"
+func (kv SavePointKV) Key() []byte {
+	return kv.key
 }
 
 func (kv SavePointKV) Location() (uint64, uint64, error) {
@@ -98,7 +98,7 @@ func (kv SavePointKV) Print() {
 	msg := fmt.Sprintf("<SavePointKV>\n")
 	msg += fmt.Sprintf("channel: %s\n", keys[0])
 	msg += fmt.Sprintf("RealKey: %s\n", keys[1])
-	msg += fmt.Sprintf("RealValue: %s\n", kv.value)
+	msg += fmt.Sprintf("RealValue: %x\n", kv.value)
 	bNum, txNum, err := kv.Location()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -127,19 +127,8 @@ func (kv InitializedKV) Describe() string {
 	return "indicates if chancode is initialized"
 }
 
-func (kv InitializedKV) Key() string {
-	ccInternalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	internalKey := bytes.SplitN(ccInternalKey, []byte{0x00}, 2)[1]
-	offset := 1
-
-	size := utils.GetInt([]byte{internalKey[0]})
-	offset += size
-
-	keySize := utils.GetInt(internalKey[1:offset])
-	offset += keySize
-
-	realKey := string(internalKey[1+size : offset])
-	return realKey
+func (kv InitializedKV) Key() []byte {
+	return kv.key
 }
 
 func (kv InitializedKV) Location() (uint64, uint64, error) {
@@ -211,19 +200,8 @@ func (kv GeneralKV) Describe() string {
 	return "general history key value pair"
 }
 
-func (kv GeneralKV) Key() string {
-	ccInternalKey := bytes.SplitN(kv.key, []byte{0x00}, 2)[1]
-	internalKey := bytes.SplitN(ccInternalKey, []byte{0x00}, 2)[1]
-	offset := 1
-
-	size := utils.GetInt([]byte{internalKey[0]})
-	offset += size
-
-	keySize := utils.GetInt(internalKey[1:offset])
-	offset += keySize
-
-	realKey := string(internalKey[1+size : offset])
-	return realKey
+func (kv GeneralKV) Key() []byte {
+	return kv.key
 }
 
 func (kv GeneralKV) Location() (uint64, uint64, error) {
