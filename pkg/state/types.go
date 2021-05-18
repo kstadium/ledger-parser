@@ -244,7 +244,30 @@ func (kv UserPublicKV) Print() {
 	fmt.Printf("<%s>\n", kv.describe)
 	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
-	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", versionedValue.Value, versionedValue.Version.String(), versionedValue.Metadata)
+	metaResult, err := utils.Deserialize(versionedValue.Metadata)
+	if err != nil {
+		fmt.Printf("Deserialize metadata err: %s\n", err)
+	}
+	if len(metaResult) == 0 {
+		fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n", versionedValue.Value, versionedValue.Version.String())
+		fmt.Println()
+		return
+	}
+	msgMetadata := ""
+	for key, value := range metaResult {
+		if key == "VALIDATION_PARAMETER" {
+			spe := &common.SignaturePolicyEnvelope{}
+			err := proto.Unmarshal(value, spe)
+			if err != nil {
+				fmt.Printf("Unmarshal Validation Parameter Policy err : %s\n", err)
+				return
+			}
+			value = []byte(spe.String())
+		}
+		msgMetadata = fmt.Sprintf("key: %s, value: %s", key, value)
+	}
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:\n\t\t%s\n", versionedValue.Value, versionedValue.Version.String(), msgMetadata)
+	fmt.Println()
 }
 
 func (kv UserPublicKV) Type() int {
@@ -289,10 +312,35 @@ func (kv UserPrivateKV) Print() {
 		return
 	}
 
+	metaResult, err := utils.Deserialize(versionedValue.Metadata)
+	if err != nil {
+		fmt.Printf("Deserialize metadata err: %s\n", err)
+	}
+
 	fmt.Printf("<%s>\n", kv.describe)
 	fmt.Printf("channel: %s\n", bytes.SplitN(kv.key, []byte{0x00}, 2)[0])
 	fmt.Printf("RealKey: %s\n", realKey)
-	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), versionedValue.Metadata)
+	if len(metaResult) == 0 {
+		fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n", realValue, versionedValue.Version.String())
+		fmt.Println()
+		return
+	}
+
+	msgMetadata := ""
+	for key, value := range metaResult {
+		if key == "VALIDATION_PARAMETER" {
+			spe := &common.SignaturePolicyEnvelope{}
+			err := proto.Unmarshal(value, spe)
+			if err != nil {
+				fmt.Printf("Unmarshal Validation Parameter Policy err : %s\n", err)
+				return
+			}
+			value = []byte(spe.String())
+		}
+		msgMetadata = fmt.Sprintf("key: %s, value: %s", key, value)
+	}
+
+	fmt.Printf("Value\n\tvalue: %s\n\tversion: %s\n\tmetadata:%s\n", realValue, versionedValue.Version.String(), msgMetadata)
 }
 
 func (kv UserPrivateKV) Type() int {
