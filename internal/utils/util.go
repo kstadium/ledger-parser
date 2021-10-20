@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric/common/ledger/util"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/stateleveldb/msgs"
@@ -90,4 +91,26 @@ func DecodeValue(encodedValue []byte) (*statedb.VersionedValue, error) {
 		val = []byte{}
 	}
 	return &statedb.VersionedValue{Version: ver, Value: val, Metadata: metadata}, nil
+}
+
+// Serialize serializes metadata entries for storing in statedb
+func Serialize(metadataEntries []*kvrwset.KVMetadataEntry) ([]byte, error) {
+	metadata := &kvrwset.KVMetadataWrite{Entries: metadataEntries}
+	return proto.Marshal(metadata)
+}
+
+// Deserialize deserializes metadata bytes from statedb
+func Deserialize(metadataBytes []byte) (map[string][]byte, error) {
+	if metadataBytes == nil {
+		return nil, nil
+	}
+	metadata := &kvrwset.KVMetadataWrite{}
+	if err := proto.Unmarshal(metadataBytes, metadata); err != nil {
+		return nil, err
+	}
+	m := make(map[string][]byte, len(metadata.Entries))
+	for _, metadataEntry := range metadata.Entries {
+		m[metadataEntry.Name] = metadataEntry.Value
+	}
+	return m, nil
 }
